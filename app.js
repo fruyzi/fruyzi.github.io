@@ -10,6 +10,7 @@ const firebaseConfig = {
   measurementId: "G-ZPW5BBKV4S"
 };
 
+
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -300,7 +301,8 @@ function checkout() {
 // ===== ПРОФИЛЬ =====
 function renderProfile() {
     if (!userData) return;
-    document.getElementById('profile-name').textContent = userData.name || 'Эко-покупатель';
+    const verifiedBadge = userData.isVerified ? ' <span class="verified-badge" title="Верифицированный эко-активист">✅</span>' : '';
+    document.getElementById('profile-name').innerHTML = (userData.name || 'Эко-покупатель') + verifiedBadge;
     document.getElementById('profile-email').textContent = currentUser.email;
     document.getElementById('profile-points').textContent = userData.points || 0;
     document.getElementById('profile-trees').textContent = userData.trees || 0;
@@ -605,6 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 trees: 0,
                 ordersCount: 0,
                 isAdmin: false,
+                isVerified: false,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             db.collection('stats').doc('global').update({
@@ -679,11 +682,25 @@ auth.onAuthStateChanged(user => {
 
         db.collection('users').doc(user.uid).onSnapshot(doc => {
             userData = doc.exists ? doc.data() : {};
+
+            // Обновляем галочку verified в навигации
+            const avatar = document.getElementById('user-avatar');
+            if (avatar) {
+                if (userData.isVerified) {
+                    avatar.innerHTML = '👤✅';
+                    avatar.title = 'Верифицированный эко-активист';
+                    avatar.style.borderColor = '#f59e0b';
+                } else {
+                    avatar.innerHTML = '👤';
+                    avatar.title = 'Пользователь';
+                    avatar.style.borderColor = 'var(--primary)';
+                }
+            }
             if (!doc.exists) {
                 db.collection('users').doc(user.uid).set({
                     email: user.email,
                     name: user.displayName || 'Пользователь',
-                    points: 0, trees: 0, ordersCount: 0, isAdmin: false,
+                    points: 0, trees: 0, ordersCount: 0, isAdmin: false, isVerified: false,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
             }
