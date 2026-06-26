@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌿 EcoMarket — Экологичные товары</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <!-- Навигация -->
+    <nav class="navbar">
+        <div class="nav-brand" onclick="router('home')">
+            <span class="logo">🌿</span>
+            <span>EcoMarket</span>
+        </div>
+        <div class="nav-links">
+            <a href="#" onclick="router('catalog')">Каталог</a>
+            <a href="#" onclick="router('about')">О нас</a>
+            <a href="#" onclick="router('eco-impact')">Эко-влияние</a>
+        </div>
+        <div class="nav-actions">
+            <div class="eco-points" id="nav-points" title="Ваши ЭкоБаллы">🌱 <span>0</span></div>
+            <div class="cart-icon" onclick="router('cart')">
+                🛒
+                <span class="cart-badge" id="cart-count">0</span>
+            </div>
+            <div id="auth-buttons">
+                <button class="btn btn-outline" onclick="openAuthModal()">Войти</button>
+            </div>
+            <div id="user-menu" class="hidden">
+                <div class="avatar" onclick="toggleUserDropdown()" id="user-avatar">👤</div>
+                <div class="dropdown hidden" id="user-dropdown">
+                    <a href="#" onclick="router('profile'); toggleUserDropdown()">👤 Профиль</a>
+                    <a href="#" onclick="router('orders'); toggleUserDropdown()">📦 Заказы</a>
+                    <a href="#" class="admin-link hidden" id="admin-link" onclick="router('admin'); toggleUserDropdown()">⚙️ Админ-панель</a>
+                    <hr>
+                    <a href="#" onclick="logout()">🚪 Выйти</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Уведомления -->
+    <div id="toast-container"></div>
+
+    <!-- ========== СТРАНИЦЫ ========== -->
+
+    <!-- Главная -->
+    <div id="page-home" class="page">
+        <section class="hero">
+            <div class="hero-content">
+                <h1>Покупай экологично — <br><span class="gradient-text">спасай планету</span></h1>
+                <p>Каждая покупка приносит пользу природе. Накапливай ЭкоБаллы и сажай виртуальные деревья!</p>
+                <button class="btn btn-primary btn-lg" onclick="router('catalog')">🛍️ В каталог</button>
+            </div>
+            <div class="hero-stats">
+                <div class="stat-card">
+                    <div class="stat-num" id="stat-products">0</div>
+                    <div class="stat-label">эко-товаров</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" id="stat-trees">0</div>
+                    <div class="stat-label">деревьев посажено</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" id="stat-users">0</div>
+                    <div class="stat-label">эко-покупателей</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="featured">
+            <h2>🔥 Популярные товары</h2>
+            <div class="products-grid" id="featured-products"></div>
+        </section>
+
+        <section class="how-it-works">
+            <h2>Как работают ЭкоБаллы?</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-icon">🛒</div>
+                    <h3>Покупай</h3>
+                    <p>Каждый рубль = 1 ЭкоБалл</p>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step">
+                    <div class="step-icon">🌱</div>
+                    <h3>Накапливай</h3>
+                    <p>Собирай баллы в профиле</p>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step">
+                    <div class="step-icon">🌳</div>
+                    <h3>Сажай деревья</h3>
+                    <p>500 баллов = 1 виртуальное дерево</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Каталог -->
+    <div id="page-catalog" class="page hidden">
+        <div class="catalog-header">
+            <h1>🛍️ Каталог товаров</h1>
+            <div class="catalog-filters">
+                <button class="filter-chip active" data-cat="all">Все</button>
+                <button class="filter-chip" data-cat="kitchen">🍽️ Кухня</button>
+                <button class="filter-chip" data-cat="beauty">💄 Красота</button>
+                <button class="filter-chip" data-cat="home">🏠 Дом</button>
+                <button class="filter-chip" data-cat="accessories">🎒 Аксессуары</button>
+                <button class="filter-chip" data-cat="tech">🔋 Техника</button>
+            </div>
+        </div>
+        <div class="products-grid" id="catalog-products"></div>
+    </div>
+
+    <!-- Карточка товара -->
+    <div id="page-product" class="page hidden">
+        <div class="product-detail" id="product-detail"></div>
+    </div>
+
+    <!-- Корзина -->
+    <div id="page-cart" class="page hidden">
+        <h1>🛒 Корзина</h1>
+        <div id="cart-content">
+            <div class="cart-items" id="cart-items"></div>
+            <div class="cart-summary">
+                <div class="summary-row">
+                    <span>Товары:</span>
+                    <span id="cart-subtotal">0 ₽</span>
+                </div>
+                <div class="summary-row">
+                    <span>Доставка:</span>
+                    <span class="free">Бесплатно</span>
+                </div>
+                <div class="summary-row highlight">
+                    <span>ЭкоБаллов получите:</span>
+                    <span class="eco">+<span id="cart-points">0</span> 🌱</span>
+                </div>
+                <hr>
+                <div class="summary-row total">
+                    <span>Итого:</span>
+                    <span id="cart-total">0 ₽</span>
+                </div>
+                <button class="btn btn-primary btn-lg btn-full" onclick="checkout()" id="checkout-btn">
+                    ✅ Оформить заказ
+                </button>
+            </div>
+        </div>
+        <div id="cart-empty" class="empty-state hidden">
+            <div class="emoji">🛒</div>
+            <h2>Корзина пуста</h2>
+            <p>Добавьте экотовары из каталога</p>
+            <button class="btn btn-primary" onclick="router('catalog')">В каталог</button>
+        </div>
+    </div>
+
+    <!-- Профиль -->
+    <div id="page-profile" class="page hidden">
+        <div class="profile-layout">
+            <div class="profile-sidebar">
+                <div class="profile-avatar">🌿</div>
+                <h2 id="profile-name">Пользователь</h2>
+                <p id="profile-email">email@example.com</p>
+                <div class="profile-stats">
+                    <div class="profile-stat">
+                        <div class="profile-stat-num" id="profile-points">0</div>
+                        <div class="profile-stat-label">ЭкоБаллов</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="profile-stat-num" id="profile-trees">0</div>
+                        <div class="profile-stat-label">Деревьев</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="profile-stat-num" id="profile-orders">0</div>
+                        <div class="profile-stat-label">Заказов</div>
+                    </div>
+                </div>
+            </div>
+            <div class="profile-main">
+                <h2>🌳 Мой лес</h2>
+                <div class="forest" id="user-forest">
+                    <p class="forest-empty">Пока нет деревьев. Накопите 500 ЭкоБаллов, чтобы посадить первое!</p>
+                </div>
+                <button class="btn btn-success" id="plant-tree-btn" onclick="plantTree()" disabled>
+                    🌳 Посадить дерево (500 🌱)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Заказы -->
+    <div id="page-orders" class="page hidden">
+        <h1>📦 Мои заказы</h1>
+        <div id="orders-list"></div>
+    </div>
+
+    <!-- Эко-влияние -->
+    <div id="page-eco-impact" class="page hidden">
+        <h1>🌍 Наше эко-влияние</h1>
+        <div class="impact-grid">
+            <div class="impact-card">
+                <div class="impact-icon">🌳</div>
+                <div class="impact-num" id="impact-trees">0</div>
+                <div class="impact-label">Виртуальных деревьев посажено</div>
+            </div>
+            <div class="impact-card">
+                <div class="impact-icon">♻️</div>
+                <div class="impact-num" id="impact-plastic">0</div>
+                <div class="impact-label">Кг пластика предотвращено</div>
+            </div>
+            <div class="impact-card">
+                <div class="impact-icon">💧</div>
+                <div class="impact-num" id="impact-water">0</div>
+                <div class="impact-label">Литров воды сэкономлено</div>
+            </div>
+            <div class="impact-card">
+                <div class="impact-icon">🌱</div>
+                <div class="impact-num" id="impact-co2">0</div>
+                <div class="impact-label">Кг CO₂ предотвращено</div>
+            </div>
+        </div>
+        <div class="impact-leaderboard">
+            <h2>🏆 Топ эко-активистов</h2>
+            <div id="leaderboard"></div>
+        </div>
+    </div>
+
+    <!-- О нас -->
+    <div id="page-about" class="page hidden">
+        <div class="about-hero">
+            <h1>🌿 О EcoMarket</h1>
+            <p>Мы верим, что каждая покупка может быть осознанной. Наши товары — это шаг к чистой планете.</p>
+        </div>
+        <div class="about-grid">
+            <div class="about-card">
+                <div class="about-icon">♻️</div>
+                <h3>Без пластика</h3>
+                <p>Вся упаковка биоразлагаемая или многоразовая</p>
+            </div>
+            <div class="about-card">
+                <div class="about-icon">🌱</div>
+                <h3>Натуральные материалы</h3>
+                <p>Бамбук, органический хлопок, переработанные материалы</p>
+            </div>
+            <div class="about-card">
+                <div class="about-icon">🤝</div>
+                <h3>Честное производство</h3>
+                <p>Сотрудничаем только с этичными производителями</p>
+            </div>
+            <div class="about-card">
+                <div class="about-icon">🌍</div>
+                <h3>1% для планеты</h3>
+                <p>1% от каждой покупки идёт на экологические проекты</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- АДМИН-ПАНЕЛЬ -->
+    <div id="page-admin" class="page hidden">
+        <div class="admin-layout">
+            <aside class="admin-sidebar">
+                <h3>⚙️ Админ-панель</h3>
+                <nav>
+                    <a href="#" class="active" onclick="showAdminTab('products')">📦 Товары</a>
+                    <a href="#" onclick="showAdminTab('orders')">📋 Заказы</a>
+                    <a href="#" onclick="showAdminTab('users')">👥 Пользователи</a>
+                    <a href="#" onclick="showAdminTab('stats')">📊 Статистика</a>
+                </nav>
+            </aside>
+            <main class="admin-content">
+                <!-- Товары -->
+                <div id="admin-tab-products" class="admin-tab">
+                    <div class="admin-header">
+                        <h2>📦 Управление товарами</h2>
+                        <button class="btn btn-primary" onclick="openProductModal()">➕ Добавить товар</button>
+                    </div>
+                    <div class="admin-table-wrap">
+                        <table class="admin-table" id="admin-products-table">
+                            <thead>
+                                <tr><th>Фото</th><th>Название</th><th>Категория</th><th>Цена</th><th>Наличие</th><th>Действия</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Заказы -->
+                <div id="admin-tab-orders" class="admin-tab hidden">
+                    <h2>📋 Все заказы</h2>
+                    <div class="admin-table-wrap">
+                        <table class="admin-table" id="admin-orders-table">
+                            <thead>
+                                <tr><th>№</th><th>Покупатель</th><th>Товары</th><th>Сумма</th><th>Статус</th><th>Дата</th><th>Действия</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Пользователи -->
+                <div id="admin-tab-users" class="admin-tab hidden">
+                    <h2>👥 Пользователи</h2>
+                    <div class="admin-table-wrap">
+                        <table class="admin-table" id="admin-users-table">
+                            <thead>
+                                <tr><th>Email</th><th>ЭкоБаллы</th><th>Деревья</th><th>Заказов</th><th>Дата регистрации</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Статистика -->
+                <div id="admin-tab-stats" class="admin-tab hidden">
+                    <h2>📊 Статистика магазина</h2>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-box-num" id="admin-stat-revenue">0 ₽</div>
+                            <div class="stat-box-label">Общая выручка</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-box-num" id="admin-stat-orders">0</div>
+                            <div class="stat-box-label">Всего заказов</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-box-num" id="admin-stat-users">0</div>
+                            <div class="stat-box-label">Пользователей</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-box-num" id="admin-stat-products">0</div>
+                            <div class="stat-box-label">Товаров</div>
+                        </div>
+                    </div>
+                    <div class="chart-area">
+                        <h3>Заказы по категориям</h3>
+                        <div class="bar-chart" id="category-chart"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- ========== МОДАЛЬНЫЕ ОКНА ========== -->
+
+    <!-- Авторизация -->
+    <div id="auth-modal" class="modal hidden">
+        <div class="modal-content auth-modal-content">
+            <span class="modal-close" onclick="closeAuthModal()">&times;</span>
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('login')">Вход</button>
+                <button class="auth-tab" onclick="switchAuthTab('register')">Регистрация</button>
+            </div>
+            <form id="login-form" class="auth-form">
+                <input type="email" id="login-email" placeholder="Email" required>
+                <input type="password" id="login-password" placeholder="Пароль" required>
+                <button type="submit" class="btn btn-primary btn-full">Войти</button>
+            </form>
+            <form id="register-form" class="auth-form hidden">
+                <input type="email" id="reg-email" placeholder="Email" required>
+                <input type="password" id="reg-password" placeholder="Пароль (мин. 6 симв.)" required>
+                <input type="text" id="reg-name" placeholder="Ваше имя" required>
+                <button type="submit" class="btn btn-success btn-full">Зарегистрироваться</button>
+            </form>
+            <div id="auth-message" class="message"></div>
+        </div>
+    </div>
+
+    <!-- Добавление/редактирование товара (админ) -->
+    <div id="product-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeProductModal()">&times;</span>
+            <h2 id="product-modal-title">Добавить товар</h2>
+            <form id="product-form">
+                <input type="hidden" id="edit-product-id">
+                <div class="form-group">
+                    <label>Название</label>
+                    <input type="text" id="prod-name" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Цена (₽)</label>
+                        <input type="number" id="prod-price" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Категория</label>
+                        <select id="prod-category">
+                            <option value="kitchen">🍽️ Кухня</option>
+                            <option value="beauty">💄 Красота</option>
+                            <option value="home">🏠 Дом</option>
+                            <option value="accessories">🎒 Аксессуары</option>
+                            <option value="tech">🔋 Техника</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Описание</label>
+                    <textarea id="prod-desc" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>URL изображения (или emoji)</label>
+                    <input type="text" id="prod-image" placeholder="https://... или 🌿">
+                </div>
+                <div class="form-group">
+                    <label>Эко-влияние (кг CO₂ предотвращено)</label>
+                    <input type="number" id="prod-co2" min="0" step="0.1" value="0">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="prod-active" checked>
+                        Активен (виден в каталоге)
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Подвал -->
+    <footer class="footer">
+        <p>🌿 EcoMarket 2024 — Покупай осознанно</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
