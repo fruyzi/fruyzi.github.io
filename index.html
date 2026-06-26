@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Менеджер задач</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Шапка -->
+        <header class="header">
+            <h1>📋 Менеджер задач</h1>
+            <div id="user-info" class="user-info hidden">
+                <span id="user-email"></span>
+                <button id="logout-btn" class="btn btn-secondary">Выйти</button>
+            </div>
+        </header>
+
+        <!-- Форма авторизации -->
+        <div id="auth-section" class="auth-section">
+            <div class="auth-card">
+                <h2>Вход в систему</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Пароль</label>
+                        <input type="password" id="login-password" placeholder="••••••" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Войти</button>
+                </form>
+                <div class="divider">или</div>
+                <form id="register-form">
+                    <h3>Регистрация</h3>
+                    <div class="form-group">
+                        <label for="reg-email">Email</label>
+                        <input type="email" id="reg-email" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password">Пароль</label>
+                        <input type="password" id="reg-password" placeholder="минимум 6 символов" required>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-full">Зарегистрироваться</button>
+                </form>
+                <div id="auth-message" class="message"></div>
+            </div>
+        </div>
+
+        <!-- Основной контент (после авторизации) -->
+        <div id="main-section" class="main-section hidden">
+            <!-- Форма добавления задачи -->
+            <div class="task-form-card">
+                <h2>Добавить задачу</h2>
+                <form id="task-form">
+                    <div class="form-row">
+                        <div class="form-group flex-grow">
+                            <input type="text" id="task-title" placeholder="Название задачи" required>
+                        </div>
+                        <div class="form-group">
+                            <select id="task-priority">
+                                <option value="low">🟢 Низкий</option>
+                                <option value="medium" selected>🟡 Средний</option>
+                                <option value="high">🔴 Высокий</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">➕ Добавить</button>
+                    </div>
+                    <div class="form-group">
+                        <textarea id="task-desc" rows="2" placeholder="Описание задачи (необязательно)"></textarea>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Фильтры -->
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">Все</button>
+                <button class="filter-btn" data-filter="active">Активные</button>
+                <button class="filter-btn" data-filter="completed">Выполненные</button>
+            </div>
+
+            <!-- Список задач -->
+            <div id="tasks-container" class="tasks-container">
+                <div class="loading">Загрузка задач...</div>
+            </div>
+
+            <!-- Статистика -->
+            <div class="stats">
+                <span id="stats-text">Всего: 0 | Активных: 0 | Выполнено: 0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно редактирования -->
+    <div id="edit-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2>Редактировать задачу</h2>
+            <form id="edit-form">
+                <input type="hidden" id="edit-id">
+                <div class="form-group">
+                    <label>Название</label>
+                    <input type="text" id="edit-title" required>
+                </div>
+                <div class="form-group">
+                    <label>Описание</label>
+                    <textarea id="edit-desc" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Приоритет</label>
+                    <select id="edit-priority">
+                        <option value="low">🟢 Низкий</option>
+                        <option value="medium">🟡 Средний</option>
+                        <option value="high">🔴 Высокий</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
