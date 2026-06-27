@@ -8,9 +8,11 @@ const firebaseConfig = {
   appId: "1:516530894177:web:b84b2b3ceab87e2d5c8120",
   measurementId: "G-ZPW5BBKV4S"
 };
+
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+
 let currentUser = null;
 let userData = null;
 let cart = [];
@@ -19,60 +21,70 @@ let currentCategory = 'all';
 let currentPage = 'home';
 let allOrders = [];
 let allUsers = [];
+let detailQty = 1;
+
 function router(page) {
     currentPage = page;
     document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
     document.getElementById('page-' + page).classList.remove('hidden');
     window.scrollTo(0, 0);
-    switch(page) {
-        case 'home': renderHome(); break;
-        case 'catalog': renderCatalog(); break;
-        case 'cart': renderCart(); break;
-        case 'profile': renderProfile(); break;
-        case 'orders': renderOrders(); break;
-        case 'eco-impact': renderEcoImpact(); break;
-        case 'admin': renderAdmin(); break;
-    }
+
+    if (page === 'home') renderHome();
+    if (page === 'catalog') renderCatalog();
+    if (page === 'cart') renderCart();
+    if (page === 'profile') renderProfile();
+    if (page === 'orders') renderOrders();
+    if (page === 'eco-impact') renderEcoImpact();
+    if (page === 'admin') renderAdmin();
 }
+
 function openAuthModal() {
     document.getElementById('auth-modal').classList.remove('hidden');
 }
+
 function closeAuthModal() {
     document.getElementById('auth-modal').classList.add('hidden');
     document.getElementById('auth-message').style.display = 'none';
 }
+
 function switchAuthTab(tab) {
     document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
     event.target.classList.add('active');
     document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
     document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
 }
+
 function showAuthMessage(text, type) {
     const msg = document.getElementById('auth-message');
     msg.textContent = text;
     msg.className = 'message ' + (type || '');
     msg.style.display = text ? 'block' : 'none';
 }
+
 function logout() {
     auth.signOut();
     cart = [];
     updateCartCount();
     router('home');
 }
+
 function toggleUserDropdown() {
     document.getElementById('user-dropdown').classList.toggle('hidden');
 }
+
 function toast(message, type) {
     const container = document.getElementById('toast-container');
     const t = document.createElement('div');
     t.className = 'toast' + (type === 'error' ? ' error' : '');
-    t.innerHTML = type === 'error' ? '❌ ' + message : '✅ ' + message;
+    t.innerHTML = (type === 'error' ? '❌ ' : '✅ ') + message;
     container.appendChild(t);
     setTimeout(() => t.remove(), 3000);
 }
+
 function getProductsRef() {
     return db.collection('products');
 }
+
 function loadProducts() {
     getProductsRef().onSnapshot(snapshot => {
         products = [];
@@ -84,7 +96,8 @@ function loadProducts() {
         if (currentPage === 'admin') renderAdminProducts();
     });
 }
-function renderProductCard(p, featured) {
+
+function renderProductCard(p) {
     const img = p.image && p.image.startsWith('http') 
         ? '<img src="' + p.image + '" alt="' + escapeHtml(p.name) + '">'
         : (p.image || '🌿');
@@ -106,9 +119,11 @@ function renderProductCard(p, featured) {
         </div>
     `;
 }
+
 function renderHome() {
     const featured = products.filter(p => p.active !== false).slice(0, 4);
-    document.getElementById('featured-products').innerHTML = featured.map(p => renderProductCard(p, true)).join('');
+    document.getElementById('featured-products').innerHTML = featured.map(p => renderProductCard(p)).join('');
+
     db.collection('stats').doc('global').get().then(doc => {
         if (doc.exists) {
             const d = doc.data();
@@ -120,10 +135,12 @@ function renderHome() {
         animateNum('stat-products', products.length);
     });
 }
+
 function renderCatalog() {
     const filtered = currentCategory === 'all' 
         ? products.filter(p => p.active !== false)
         : products.filter(p => p.category === currentCategory && p.active !== false);
+
     const container = document.getElementById('catalog-products');
     if (filtered.length === 0) {
         container.innerHTML = '<div class="empty-state"><div class="emoji">🔍</div><h2>Ничего не найдено</h2></div>';
@@ -131,12 +148,15 @@ function renderCatalog() {
     }
     container.innerHTML = filtered.map(p => renderProductCard(p)).join('');
 }
+
 function showProductDetail(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
+
     const img = p.image && p.image.startsWith('http')
         ? '<img src="' + p.image + '" alt="' + escapeHtml(p.name) + '">'
         : (p.image || '🌿');
+
     document.getElementById('product-detail').innerHTML = `
         <div class="product-detail-image">${img}</div>
         <div class="product-detail-info">
@@ -164,18 +184,21 @@ function showProductDetail(id) {
             </button>
         </div>
     `;
+    detailQty = 1;
     router('product');
 }
-let detailQty = 1;
+
 function changeQty(delta) {
     detailQty = Math.max(1, detailQty + delta);
     const el = document.getElementById('detail-qty');
     if (el) el.textContent = detailQty;
 }
+
 function addToCartFromDetail(id) {
     for (let i = 0; i < detailQty; i++) addToCart(id);
     detailQty = 1;
 }
+
 function addToCart(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
@@ -183,14 +206,17 @@ function addToCart(id) {
     updateCartCount();
     toast(p.name + ' добавлен в корзину!');
 }
+
 function removeFromCart(cartId) {
     cart = cart.filter(item => item.cartId !== cartId);
     renderCart();
     updateCartCount();
 }
+
 function updateCartCount() {
     document.getElementById('cart-count').textContent = cart.length;
 }
+
 function renderCart() {
     if (cart.length === 0) {
         document.getElementById('cart-content').classList.add('hidden');
@@ -199,6 +225,7 @@ function renderCart() {
     }
     document.getElementById('cart-content').classList.remove('hidden');
     document.getElementById('cart-empty').classList.add('hidden');
+
     let total = 0;
     document.getElementById('cart-items').innerHTML = cart.map(item => {
         total += item.price;
@@ -218,13 +245,16 @@ function renderCart() {
             </div>
         `;
     }).join('');
+
     document.getElementById('cart-subtotal').textContent = total + ' ₽';
     document.getElementById('cart-points').textContent = total;
     document.getElementById('cart-total').textContent = total + ' ₽';
 }
+
 function checkout() {
     if (!currentUser) { openAuthModal(); return; }
     if (cart.length === 0) { toast('Корзина пуста!', 'error'); return; }
+
     const total = cart.reduce((sum, item) => sum + item.price, 0);
     const order = {
         userId: currentUser.uid,
@@ -235,24 +265,28 @@ function checkout() {
         status: 'pending',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
+
     db.collection('orders').add(order).then(() => {
         const userRef = db.collection('users').doc(currentUser.uid);
         userRef.update({
             points: firebase.firestore.FieldValue.increment(total),
             ordersCount: firebase.firestore.FieldValue.increment(1)
         });
+
         const statsRef = db.collection('stats').doc('global');
         statsRef.update({
             orders: firebase.firestore.FieldValue.increment(1),
             revenue: firebase.firestore.FieldValue.increment(total),
             co2Saved: firebase.firestore.FieldValue.increment(cart.reduce((s, i) => s + (i.co2Saved || 0), 0))
         });
+
         cart = [];
         updateCartCount();
         toast('Заказ оформлен! +' + total + ' 🌱');
         router('orders');
     });
 }
+
 function renderProfile() {
     if (!userData) return;
     const verifiedBadge = userData.isVerified ? ' <span class="verified-badge" title="Верифицированный эко-активист">✅</span>' : '';
@@ -262,6 +296,7 @@ function renderProfile() {
     document.getElementById('profile-trees').textContent = userData.trees || 0;
     document.getElementById('profile-orders').textContent = userData.ordersCount || 0;
     document.getElementById('nav-points').innerHTML = '🌱 ' + (userData.points || 0);
+
     const forest = document.getElementById('user-forest');
     const trees = userData.trees || 0;
     if (trees > 0) {
@@ -272,6 +307,7 @@ function renderProfile() {
     } else {
         forest.innerHTML = '<p class="forest-empty">Пока нет деревьев. Накопите 500 ЭкоБаллов, чтобы посадить первое!</p>';
     }
+
     const btn = document.getElementById('plant-tree-btn');
     btn.disabled = (userData.points || 0) < 500;
     if (btn.disabled) {
@@ -280,8 +316,10 @@ function renderProfile() {
         btn.textContent = '🌳 Посадить дерево (500 🌱)';
     }
 }
+
 function plantTree() {
     if (!userData || (userData.points || 0) < 500) return;
+
     db.collection('users').doc(currentUser.uid).update({
         points: firebase.firestore.FieldValue.increment(-500),
         trees: firebase.firestore.FieldValue.increment(1)
@@ -292,10 +330,12 @@ function plantTree() {
         toast('🌳 Дерево посажено! Спасибо за заботу о планете!');
     });
 }
+
 function renderOrders() {
     if (!currentUser) { router('home'); return; }
     const list = document.getElementById('orders-list');
-    list.innerHTML = '<div class="loading" style="text-align:center;padding:40px;">Загрузка...</div>';
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:#166534;">Загрузка...</div>';
+
     db.collection('orders')
         .where('userId', '==', currentUser.uid)
         .orderBy('createdAt', 'desc')
@@ -330,6 +370,7 @@ function renderOrders() {
             }).join('');
         });
 }
+
 function renderEcoImpact() {
     db.collection('stats').doc('global').get().then(doc => {
         const d = doc.exists ? doc.data() : {};
@@ -338,6 +379,7 @@ function renderEcoImpact() {
         animateNum('impact-water', Math.round((d.co2Saved || 0) * 150));
         animateNum('impact-co2', Math.round(d.co2Saved || 0));
     });
+
     db.collection('users').orderBy('trees', 'desc').limit(10).get().then(snapshot => {
         const users = snapshot.docs.map((doc, i) => ({ ...doc.data(), rank: i + 1 }));
         document.getElementById('leaderboard').innerHTML = users.map((u, i) => {
@@ -352,6 +394,7 @@ function renderEcoImpact() {
         }).join('');
     });
 }
+
 function renderAdmin() {
     if (!userData || !userData.isAdmin) { router('home'); return; }
     showAdminTab('products');
@@ -360,12 +403,14 @@ function renderAdmin() {
     renderAdminUsers();
     renderAdminStats();
 }
+
 function showAdminTab(tab) {
     document.querySelectorAll('.admin-tab').forEach(t => t.classList.add('hidden'));
     document.getElementById('admin-tab-' + tab).classList.remove('hidden');
     document.querySelectorAll('.admin-sidebar nav a').forEach(a => a.classList.remove('active'));
     event.target.classList.add('active');
 }
+
 function renderAdminProducts() {
     const tbody = document.querySelector('#admin-products-table tbody');
     tbody.innerHTML = products.map(p => {
@@ -387,6 +432,7 @@ function renderAdminProducts() {
         `;
     }).join('');
 }
+
 function renderAdminOrders() {
     db.collection('orders').orderBy('createdAt', 'desc').get().then(snapshot => {
         allOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -412,15 +458,17 @@ function renderAdminOrders() {
         }).join('');
     });
 }
+
 function renderAdminUsers() {
     db.collection('users').get().then(snapshot => {
         allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const tbody = document.querySelector('#admin-users-table tbody');
         tbody.innerHTML = allUsers.map(u => {
             const regDate = u.createdAt ? u.createdAt.toDate().toLocaleDateString('ru-RU') : '—';
+            const verifiedIcon = u.isVerified ? '✅' : '❌';
             return `
                 <tr>
-                    <td>${escapeHtml(u.email || '—')}</td>
+                    <td>${escapeHtml(u.email || '—')} ${verifiedIcon}</td>
                     <td>${u.points || 0}</td>
                     <td>${u.trees || 0}</td>
                     <td>${u.ordersCount || 0}</td>
@@ -430,6 +478,7 @@ function renderAdminUsers() {
         }).join('');
     });
 }
+
 function renderAdminStats() {
     db.collection('stats').doc('global').get().then(doc => {
         const d = doc.exists ? doc.data() : {};
@@ -437,6 +486,7 @@ function renderAdminStats() {
         document.getElementById('admin-stat-orders').textContent = d.orders || 0;
         document.getElementById('admin-stat-users').textContent = d.users || 0;
         document.getElementById('admin-stat-products').textContent = products.length;
+
         const cats = {};
         allOrders.forEach(o => {
             o.items.forEach(i => {
@@ -455,10 +505,12 @@ function renderAdminStats() {
         `).join('');
     });
 }
+
 function updateOrderStatus(id, status) {
     db.collection('orders').doc(id).update({ status: status })
         .then(() => toast('Статус обновлён'));
 }
+
 function deleteOrder(id) {
     if (!confirm('Удалить заказ?')) return;
     db.collection('orders').doc(id).delete().then(() => {
@@ -466,15 +518,18 @@ function deleteOrder(id) {
         toast('Заказ удалён');
     });
 }
+
 function openProductModal() {
     document.getElementById('product-modal').classList.remove('hidden');
     document.getElementById('product-form').reset();
     document.getElementById('edit-product-id').value = '';
     document.getElementById('product-modal-title').textContent = 'Добавить товар';
 }
+
 function closeProductModal() {
     document.getElementById('product-modal').classList.add('hidden');
 }
+
 function editProduct(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
@@ -489,19 +544,26 @@ function editProduct(id) {
     document.getElementById('product-modal-title').textContent = 'Редактировать товар';
     document.getElementById('product-modal').classList.remove('hidden');
 }
+
 function deleteProduct(id) {
     if (!confirm('Удалить товар?')) return;
     getProductsRef().doc(id).delete().then(() => toast('Товар удалён'));
 }
+
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.filter-chip').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentCategory = btn.dataset.cat;
-            renderCatalog();
+            if (currentPage !== 'catalog') {
+                router('catalog');
+            } else {
+                renderCatalog();
+            }
         });
     });
+
     document.getElementById('login-form').addEventListener('submit', e => {
         e.preventDefault();
         auth.signInWithEmailAndPassword(
@@ -512,12 +574,15 @@ document.addEventListener('DOMContentLoaded', () => {
             toast('Добро пожаловать!');
         }).catch(err => showAuthMessage(getAuthError(err.code), 'error'));
     });
+
     document.getElementById('register-form').addEventListener('submit', e => {
         e.preventDefault();
         const email = document.getElementById('reg-email').value;
         const pass = document.getElementById('reg-password').value;
         const name = document.getElementById('reg-name').value;
+
         if (pass.length < 6) { showAuthMessage('Пароль минимум 6 символов', 'error'); return; }
+
         auth.createUserWithEmailAndPassword(email, pass).then(cred => {
             db.collection('users').doc(cred.user.uid).set({
                 email: email,
@@ -536,6 +601,9 @@ document.addEventListener('DOMContentLoaded', () => {
             toast('Регистрация успешна!');
         }).catch(err => showAuthMessage(getAuthError(err.code), 'error'));
     });
+
+    document.getElementById('logout-btn').addEventListener('click', logout);
+
     document.getElementById('product-form').addEventListener('submit', e => {
         e.preventDefault();
         const id = document.getElementById('edit-product-id').value;
@@ -549,6 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
             active: document.getElementById('prod-active').checked,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
+
         if (id) {
             getProductsRef().doc(id).update(data).then(() => {
                 closeProductModal();
@@ -565,13 +634,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     });
+
     document.querySelectorAll('.modal').forEach(m => {
         m.addEventListener('click', e => { if (e.target === m) m.classList.add('hidden'); });
     });
+
     loadProducts();
+
     getProductsRef().get().then(snap => {
         if (snap.empty) seedProducts();
     });
+
     db.collection('stats').doc('global').get().then(doc => {
         if (!doc.exists) {
             db.collection('stats').doc('global').set({
@@ -580,25 +653,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
 auth.onAuthStateChanged(user => {
     currentUser = user;
+
     if (user) {
         document.getElementById('auth-buttons').classList.add('hidden');
         document.getElementById('user-menu').classList.remove('hidden');
+
         db.collection('users').doc(user.uid).onSnapshot(doc => {
             userData = doc.exists ? doc.data() : {};
-            const avatar = document.getElementById('user-avatar');
-            if (avatar) {
-                if (userData.isVerified) {
-                    avatar.innerHTML = '👤✅';
-                    avatar.title = 'Верифицированный эко-активист';
-                    avatar.style.borderColor = '#f59e0b';
-                } else {
-                    avatar.innerHTML = '👤';
-                    avatar.title = 'Пользователь';
-                    avatar.style.borderColor = 'var(--primary)';
-                }
-            }
             if (!doc.exists) {
                 db.collection('users').doc(user.uid).set({
                     email: user.email,
@@ -607,12 +671,15 @@ auth.onAuthStateChanged(user => {
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
             }
+
             if (userData && userData.isAdmin) {
                 document.getElementById('admin-link').classList.remove('hidden');
             } else {
                 document.getElementById('admin-link').classList.add('hidden');
             }
+
             document.getElementById('nav-points').innerHTML = '🌱 ' + (userData.points || 0);
+
             if (currentPage === 'profile') renderProfile();
             if (currentPage === 'admin') renderAdmin();
         });
@@ -624,6 +691,7 @@ auth.onAuthStateChanged(user => {
         userData = null;
     }
 });
+
 function getCategoryLabel(cat) {
     const labels = {
         kitchen: '🍽️ Кухня', beauty: '💄 Красота', home: '🏠 Дом',
@@ -631,6 +699,7 @@ function getCategoryLabel(cat) {
     };
     return labels[cat] || cat;
 }
+
 function getAuthError(code) {
     const errors = {
         'auth/invalid-email': 'Неверный email',
@@ -642,12 +711,14 @@ function getAuthError(code) {
     };
     return errors[code] || code;
 }
+
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
+
 function animateNum(id, target) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -659,6 +730,7 @@ function animateNum(id, target) {
         el.textContent = current.toLocaleString('ru-RU');
     }, 30);
 }
+
 function seedProducts() {
     const initialProducts = [
         { name: 'Бамбуковая зубная щётка', price: 199, category: 'beauty', description: 'Экологичная зубная щётка из натурального бамбука. Биоразлагаемая, без пластика.', image: '🦷', co2Saved: 0.3, active: true },
@@ -674,10 +746,12 @@ function seedProducts() {
         { name: 'Компостер для кухни 5л', price: 1299, category: 'home', description: 'Настольный компостер с угольным фильтром. Превращайте отходы в удобрения!', image: '🌱', co2Saved: 1.5, active: true },
         { name: 'Многоразовые бамбуковые салфетки (набор 6 шт)', price: 349, category: 'home', description: 'Салфетки из бамбукового волокна. Заменяют бумажные. Моющиеся до 100 раз.', image: '🧽', co2Saved: 0.7, active: true },
     ];
+
     initialProducts.forEach(p => {
         p.createdAt = firebase.firestore.FieldValue.serverTimestamp();
         getProductsRef().add(p);
     });
+
     db.collection('stats').doc('global').update({
         products: firebase.firestore.FieldValue.increment(initialProducts.length)
     });
