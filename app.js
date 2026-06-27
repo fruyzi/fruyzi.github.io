@@ -1,4 +1,4 @@
-// ===== FIREBASE КОНФИГ (ЗАМЕНИТЕ НА СВОЙ!) =====
+
 const firebaseConfig = {
   apiKey: "AIzaSyBh6Qw5BTfsfSaKYiQN6rD68D_ryqGzZ9k",
   authDomain: "site-be901.firebaseapp.com",
